@@ -2,10 +2,11 @@
   "name": "AI Vault OS",
   "short_name": "VaultOS",
   "description": "AI Supabase Vault OS — RUN-based SSOT architecture",
-  "start_url": "/pwa/index.html",
+  "start_url": "/dashboard.html",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#a78bfa",
+  "background_color": "#0a0a12",
+  "theme_color": "#7c3aed",
   "icons": [
     {
       "src": "icons/icon-192.png",
