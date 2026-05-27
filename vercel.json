@@ -7,13 +7,13 @@
     }
   ],
   "routes": [
-    {
-      "src": "/",
-      "dest": "/pwa/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/pwa/$1"
-    }
+    { "src": "/dashboard.html", "dest": "/pwa/dashboard.html" },
+    { "src": "/settings.html",  "dest": "/pwa/settings.html"  },
+    { "src": "/manifest.json",  "dest": "/pwa/manifest.json"  },
+    { "src": "/sw.js",          "dest": "/pwa/sw.js"          },
+    { "src": "/([^/]+\\.js)",   "dest": "/pwa/$1"             },
+    { "src": "/api/(.*)",       "dest": "/pwa/api/$1"         },
+    { "src": "/",               "dest": "/pwa/index.html"     },
+    { "src": "/(.*)",           "dest": "/pwa/$1"             }
   ]
 }
