@@ -1,0 +1,17 @@
+{
+  "requiredFields": [
+    "type",
+    "enabled",
+    "authType",
+    "endpoint",
+    "models"
+  ],
+  "types": ["cloud", "router", "inference", "local"],
+  "authTypes": ["apiKey", "none"],
+  "rules": [
+    "Providers must not contain secrets",
+    "API keys are stored only in vault",
+    "Endpoints are immutable per provider",
+    "Models are selectable per task"
+  ]
+}

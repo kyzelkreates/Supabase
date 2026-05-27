@@ -1,0 +1,58 @@
+{
+  "activeProvider": "ollama",
+  "fallbackOrder": ["ollama", "groq", "openrouter", "together", "huggingface"],
+  "providers": {
+    "ollama": {
+      "enabled": true,
+      "status": "unknown",
+      "baseUrl": "http://localhost:11434",
+      "model": "llama3",
+      "keepAlive": "5m",
+      "temperature": 0.2,
+      "numCtx": 8192,
+      "timeout": 60000,
+      "label": "Ollama (Local)",
+      "local": true
+    },
+    "groq": {
+      "enabled": false,
+      "status": "unknown",
+      "model": "llama3-70b-8192",
+      "timeout": 30000,
+      "temperature": 0.2,
+      "label": "Groq",
+      "local": false
+    },
+    "openrouter": {
+      "enabled": false,
+      "status": "unknown",
+      "model": "meta-llama/llama-3-70b-instruct",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "timeout": 45000,
+      "temperature": 0.2,
+      "label": "OpenRouter",
+      "local": false
+    },
+    "together": {
+      "enabled": false,
+      "status": "unknown",
+      "model": "meta-llama/Llama-3-70b-chat-hf",
+      "baseUrl": "https://api.together.xyz/v1",
+      "timeout": 45000,
+      "temperature": 0.2,
+      "label": "Together AI",
+      "local": false
+    },
+    "huggingface": {
+      "enabled": false,
+      "status": "unknown",
+      "model": "meta-llama/Meta-Llama-3-8B-Instruct",
+      "baseUrl": "https://api-inference.huggingface.co/models",
+      "timeout": 60000,
+      "temperature": 0.2,
+      "label": "HuggingFace",
+      "local": false
+    }
+  },
+  "updatedAt": null
+}

@@ -1,0 +1,13 @@
+{
+  "locked": true,
+  "authenticated": false,
+  "sessionExpiry": null,
+  "encryptionEnabled": true,
+  "failedAttempts": 0,
+  "maxAttempts": 5,
+  "lockoutUntil": null,
+  "lockoutDurationMs": 300000,
+  "sessionDurationMs": 3600000,
+  "vaultInitialised": false,
+  "updatedAt": null
+}

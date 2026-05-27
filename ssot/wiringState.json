@@ -1,0 +1,11 @@
+{
+  "status": "pending",
+  "lastCheck": null,
+  "brokenLinks": [],
+  "frontendViolations": [],
+  "backendViolations": [],
+  "bypassDetected": false,
+  "systemReady": false,
+  "fixes": [],
+  "checkHistory": []
+}

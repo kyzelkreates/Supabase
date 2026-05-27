@@ -1,0 +1,5 @@
+# migrations/
+# Generated SQL migration files are stored here, one folder per project.
+# Structure: migrations/<project-name>/<timestamp>_<description>.sql
+# Managed by: server/migrationEngine.js
+# Do NOT add migration files manually — let installController.js handle them.

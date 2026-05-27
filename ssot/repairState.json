@@ -1,0 +1,8 @@
+{
+  "status": "idle",
+  "lastError": null,
+  "repairCount": 0,
+  "maxRepairs": 3,
+  "currentFixPrompt": null,
+  "repairHistory": []
+}

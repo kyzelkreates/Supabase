@@ -1,0 +1,12 @@
+{
+  "systemName": "AI Supabase Vault OS",
+  "version": "0.1.0",
+  "architecture": "RUN_BASED_SSOT",
+  "rules": {
+    "singleSourceOfTruth": "ssot/",
+    "noDuplicateState": true,
+    "noExternalStateWithoutMapping": true,
+    "allDataMustFlowThroughVault": true,
+    "noAIOrInstallerLogicInRun0": true
+  }
+}

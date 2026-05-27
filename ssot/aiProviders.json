@@ -1,0 +1,46 @@
+{
+  "providers": {
+    "groq": {
+      "type": "cloud",
+      "enabled": true,
+      "authType": "apiKey",
+      "endpoint": "https://api.groq.com/openai/v1/chat/completions",
+      "models": ["llama-3.1-70b", "mixtral-8x7b"]
+    },
+    "openrouter": {
+      "type": "router",
+      "enabled": true,
+      "authType": "apiKey",
+      "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+      "models": ["gpt-4o-mini", "claude-3-haiku", "deepseek/deepseek-chat"]
+    },
+    "together": {
+      "type": "cloud",
+      "enabled": false,
+      "authType": "apiKey",
+      "endpoint": "https://api.together.xyz/v1/chat/completions",
+      "models": ["meta-llama/Llama-3-70b-chat-hf"]
+    },
+    "huggingface": {
+      "type": "inference",
+      "enabled": false,
+      "authType": "apiKey",
+      "endpoint": "https://api-inference.huggingface.co/models",
+      "models": ["mistralai/Mistral-7B-Instruct-v0.2"]
+    },
+    "ollama": {
+      "type": "local",
+      "enabled": true,
+      "authType": "none",
+      "endpoint": "http://localhost:11434",
+      "models": ["llama3", "mistral"]
+    },
+    "deepseek": {
+      "type": "cloud",
+      "enabled": true,
+      "authType": "apiKey",
+      "endpoint": "https://api.deepseek.com/v1/chat/completions",
+      "models": ["deepseek-chat", "deepseek-coder"]
+    }
+  }
+}

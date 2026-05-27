@@ -1,0 +1,15 @@
+{
+  "tasks": {
+    "planner": "groq",
+    "builder": "ollama",
+    "validator": "ollama",
+    "fixer": "deepseek",
+    "fallback": "openrouter"
+  },
+  "rules": {
+    "ifProviderFailsUseFallback": true,
+    "maxRetries": 2,
+    "preferLocalForBuild": true,
+    "preferCloudForReasoning": true
+  }
+}

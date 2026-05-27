@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "projectId": null,
+  "projectName": null,
+  "sourceType": null,
+  "sourceUri": null,
+  "ingestedAt": null,
+  "projectType": null,
+  "detectedORM": [],
+  "entities": [],
+  "relations": [],
+  "enums": [],
+  "indexes": [],
+  "authModel": null,
+  "storageModel": null,
+  "rawFiles": [],
+  "signalFiles": [],
+  "targetBackends": ["supabase"],
+  "compilationStatus": "pending",
+  "compiledAt": null
+}

@@ -1,0 +1,21 @@
+{
+  "ollama": {
+    "installed": false,
+    "running": false,
+    "model": "llama3",
+    "port": 11434,
+    "status": "not_initialized",
+    "lastChecked": null,
+    "installedAt": null,
+    "models": []
+  },
+  "system": {
+    "os": null,
+    "arch": null,
+    "nodeVersion": null,
+    "shellAvailable": false
+  },
+  "systemReady": false,
+  "lastSetupAt": null,
+  "setupHistory": []
+}

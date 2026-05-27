@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "theme": "dark",
+    "aiEnabled": false,
+    "activeRun": 0
+  },
+  "aiProviders": [],
+  "routing": {
+    "planner": null,
+    "builder": null,
+    "validator": null,
+    "fixer": null
+  }
+}

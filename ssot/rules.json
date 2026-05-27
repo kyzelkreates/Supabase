@@ -1,0 +1,11 @@
+{
+  "rules": [
+    "RUN 0 defines structure only",
+    "No AI logic in RUN 0",
+    "No installer logic in RUN 0",
+    "All state must go through vault",
+    "No direct Supabase calls allowed",
+    "All keys must be abstracted, never used directly",
+    "Every future run must extend, never override RUN 0"
+  ]
+}
