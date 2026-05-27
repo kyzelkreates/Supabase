@@ -12,7 +12,7 @@
  * ✔ Provider store updated via setupAIButton (not directly here)
  */
 
-import { showToast, esc }                   from "./dashboard.js";
+import { showToast, esc }                   from "./utils.js";
 import { checkSetupStatus, getPersistedSetupState } from "./api/setupBridge.js";
 import { setupAIEnvironment }               from "./setupAIButton.js";
 

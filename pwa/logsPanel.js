@@ -3,7 +3,7 @@
  * Reads SSOT JSON files as static assets. No server imports.
  */
 
-import { showToast, esc } from "./dashboard.js";
+import { showToast, esc } from "./utils.js";
 
 // ─── Session log bus ──────────────────────────────────────────────────────────
 const _sessionLog = [];

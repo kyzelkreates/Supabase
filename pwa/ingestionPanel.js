@@ -11,7 +11,7 @@
  * ❌ Never calls server/ or agent/ modules directly
  */
 
-import { showToast, esc }                        from "./dashboard.js";
+import { showToast, esc }                        from "./utils.js";
 import { sendToAgent }                           from "./apiBridge.js";
 import { mountUploadWidget }                     from "./zipUploader.js";
 import { renderSourceSelector, getSelectedSource } from "./sourceSelectorUI.js";

@@ -14,7 +14,7 @@
 
 import { checkSetupStatus, triggerSetupStream } from "./api/setupBridge.js";
 import { updateProvider, setActiveProvider }    from "./providerStore.js";
-import { showToast }                            from "./dashboard.js";
+import { showToast }                            from "./utils.js";
 
 let _activeStream = null;   // Track SSE stream for cancel
 

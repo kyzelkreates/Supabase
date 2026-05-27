@@ -2,7 +2,7 @@
  * systemPanel.js — System Health Panel (browser-safe, RUN 7.5+)
  */
 
-import { showToast, esc } from "./dashboard.js";
+import { showToast, esc } from "./utils.js";
 import { checkAgentStatus } from "./apiBridge.js";
 
 export async function loadSystemPanel(root) {

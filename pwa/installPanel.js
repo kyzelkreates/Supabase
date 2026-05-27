@@ -3,7 +3,7 @@
  * All execution via apiBridge → agent. No server imports.
  */
 
-import { showToast, esc } from "./dashboard.js";
+import { showToast, esc } from "./utils.js";
 import { sendToAgent, checkAgentStatus } from "./apiBridge.js";
 
 export async function loadInstallPanel(root) {

@@ -11,7 +11,7 @@
  * ✔ Repair action delegated to systemWiringPanel.js
  */
 
-import { esc } from "./dashboard.js";
+import { esc } from "./utils.js";
 
 // ─── Badge Renderer (for embedding in other panels) ───────────────────────────
 

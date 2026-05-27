@@ -10,7 +10,7 @@
  * ✔ Compilation result displayed with raw SQL/JSON preview
  */
 
-import { showToast, esc } from "./dashboard.js";
+import { showToast, esc } from "./utils.js";
 import { sendToAgent }    from "./apiBridge.js";
 
 export async function openBackendSelector(ingestionResult) {

@@ -15,7 +15,7 @@
  * ❌ Never writes ssot/aiProviderConfig.json directly from PWA
  */
 
-import { showToast, esc }  from "./dashboard.js";
+import { showToast, esc }  from "./utils.js";
 import { sendToAgent }     from "./apiBridge.js";
 import { saveAIKey, isUnlocked } from "./vaultWrapper.js";
 

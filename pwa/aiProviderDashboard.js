@@ -23,7 +23,7 @@
  * ❌ Never stores or displays API key values
  */
 
-import { showToast, esc }                              from "./dashboard.js";
+import { showToast, esc }                              from "./utils.js";
 import {
   getConfig, getOrderedProviders,
   setActiveProvider, updateProvider, setFallbackOrder,

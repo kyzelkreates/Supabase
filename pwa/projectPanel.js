@@ -13,7 +13,7 @@
  */
 
 import { openDB }    from "./db.js";
-import { showToast, esc } from "./dashboard.js";
+import { showToast, esc } from "./utils.js";
 
 const DB_STORE = "projects";
 

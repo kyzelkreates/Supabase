@@ -3,7 +3,7 @@
  * Calls agent via apiBridge. Falls back to offline message if agent down.
  */
 
-import { showToast, esc } from "./dashboard.js";
+import { showToast, esc } from "./utils.js";
 import { sendToAgent, checkAgentStatus } from "./apiBridge.js";
 import { getAIKeys } from "./ai-vault.js";
 

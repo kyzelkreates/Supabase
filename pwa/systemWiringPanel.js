@@ -13,7 +13,7 @@
  * ✔ RUN 4.1 gate IS required for repair mode (writes files)
  */
 
-import { showToast, esc }           from "./dashboard.js";
+import { showToast, esc }           from "./utils.js";
 import { renderHealthReport, renderWiringBadge } from "./healthReportUI.js";
 import { preflight }                from "./preflight-check.js";
 
