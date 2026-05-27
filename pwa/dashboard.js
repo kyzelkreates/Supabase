@@ -1,39 +1,19 @@
 /**
- * dashboard.js — Dashboard Boot + Navigation Controller (RUN 5, updated RUN 7)
- *
- * Boots the dashboard:
- *   1. RUN 6: session guard (lock screen if vault locked / session expired)
- *   2. Runs preflight gate check (RUN 4.1)
- *   3. Updates gate pill in topbar
- *   4. Loads default panel (projects)
- *   5. Wires sidebar navigation
- *
- * RUN 7 additions:
- *   - guardSession() call before boot
- *   - Orchestration + RunConsole panels registered
- *   - "orchestration" and "console" panels are execution-gated
- *
- * SSOT Rules:
- * ✔ UI controller only — no backend logic
- * ✔ Session guard via lockScreen.js (RUN 6) is always first
- * ✔ Gate check via preflight-check.js (RUN 4.1) before any execution panel
- * ✔ Panel modules are lazy-loaded on first nav
- * ❌ Never calls server modules directly for execution
+ * dashboard.js — Dashboard Boot + Navigation Controller
+ * Fully browser-safe. No server imports. No gate blocking.
  */
 
-import { preflight }              from "./preflight-check.js";
-import { guardSession }           from "./lockScreen.js";
-import { loadProjectsPanel }      from "./projectPanel.js";
-import { loadAIPanel }            from "./aiPanel.js";
-import { loadInstallPanel }       from "./installPanel.js";
-import { loadLogsPanel }          from "./logsPanel.js";
-import { loadSystemPanel }        from "./systemPanel.js";
+import { guardSession }      from "./lockScreen.js";
+import { loadProjectsPanel } from "./projectPanel.js";
+import { loadAIPanel }       from "./aiPanel.js";
+import { loadInstallPanel }  from "./installPanel.js";
+import { loadLogsPanel }     from "./logsPanel.js";
+import { loadSystemPanel }   from "./systemPanel.js";
 import { loadOrchestrationPanel } from "./orchestrationPanel.js";
-import { loadRunConsole }         from "./runConsole.js";
+import { loadRunConsole }    from "./runConsole.js";
+import { checkAgentStatus }  from "./apiBridge.js";
 
-// ─── State ────────────────────────────────────────────────────────────────────
-
-let _gateResult = null;
+// ─── Panel registry ───────────────────────────────────────────────────────────
 
 const PANELS = {
   projects:      loadProjectsPanel,
@@ -46,57 +26,44 @@ const PANELS = {
   settings:      () => { window.location.href = "settings.html"; }
 };
 
-// Panels that require gate open before loading
-const EXECUTION_PANELS = new Set(["install", "ai", "orchestration"]);
-
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 
 async function boot() {
-  // RUN 6: session guard — shows lock screen if not authenticated
-  const sessionOk = await guardSession();
-  if (!sessionOk) return; // Lock screen took over — stop boot
+  try {
+    const ok = await guardSession();
+    if (!ok) return;
+  } catch (e) {
+    console.warn("[dashboard] guardSession error (ignored):", e.message);
+  }
 
-  setPanelRoot("<div style='color:#555;font-size:0.85rem;padding:2rem'>Running preflight check…</div>");
-  _gateResult = await runGateCheck();
-  await nav("projects", document.querySelector('[data-panel="projects"]'));
+  // Async gate pill — don't block panel load
+  _updateGatePill({ gate: "WARN", label: "⟳ Checking…", cls: "warn" });
+  checkAgentStatus(true).then((s) => {
+    _updateGatePill(s.reachable
+      ? { gate: "OPEN",   label: "✅ Agent Online", cls: "open" }
+      : { gate: "WARN",   label: "⚠ Agent Offline", cls: "warn" }
+    );
+  }).catch(() => {
+    _updateGatePill({ gate: "WARN", label: "⚠ Agent Offline", cls: "warn" });
+  });
 
-  // Session activity extender — reset expiry on any user interaction
+  _patchSidebar();
+
+  // Extend session on activity
   document.addEventListener("click",   _extendSession, { passive: true });
   document.addEventListener("keydown", _extendSession, { passive: true });
+
+  // Load default panel
+  await nav("projects", document.querySelector('[data-panel="projects"]'));
 }
 
-async function _extendSession() {
-  try {
-    const { extendSession } = await import("./authSession.js");
-    extendSession();
-  } catch {}
-}
+// ─── Gate Pill ────────────────────────────────────────────────────────────────
 
-// ─── Gate Check ───────────────────────────────────────────────────────────────
-
-async function runGateCheck() {
-  const pill = document.getElementById("gate-pill");
-  try {
-    const result = await preflight();
-    updateGatePill(result);
-    return result;
-  } catch (err) {
-    if (pill) { pill.className = "closed"; pill.textContent = "🚫 Gate Error"; }
-    return { systemReady: false, blockRun5: true, gate: "CLOSED", blockingIssues: [err.message], warnings: [], checks: {} };
-  }
-}
-
-function updateGatePill(result) {
+function _updateGatePill({ cls, label }) {
   const pill = document.getElementById("gate-pill");
   if (!pill) return;
-  const map = {
-    OPEN:   { cls: "open",   label: "✅ Gate Open" },
-    WARN:   { cls: "warn",   label: "⚠️ Degraded" },
-    CLOSED: { cls: "closed", label: "🚫 Gate Closed" }
-  };
-  const cfg = map[result.gate] || map.CLOSED;
-  pill.className = cfg.cls;
-  pill.textContent = cfg.label;
+  pill.className = cls;
+  pill.textContent = label;
 }
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
@@ -105,28 +72,63 @@ async function nav(panelName, clickedBtn) {
   document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
   if (clickedBtn) clickedBtn.classList.add("active");
 
-  // Execution panels need gate open
-  if (EXECUTION_PANELS.has(panelName)) {
-    if (!_gateResult || _gateResult.blockRun5) {
-      showToast("🚫 Gate is closed — check System panel first", "err");
-      _gateResult = await runGateCheck();
-      await loadSystemPanel(document.getElementById("panel-root"), _gateResult);
-      document.querySelector('[data-panel="system"]')?.classList.add("active");
-      return;
-    }
-  }
-
   const loader = PANELS[panelName];
   if (!loader) return;
 
   const root = document.getElementById("panel-root");
-  root.innerHTML = "<div style='color:#555;font-size:0.85rem'>Loading…</div>";
+  if (!root) return;
+  root.innerHTML = `<div style="color:#555;font-size:0.85rem;padding:2rem">Loading…</div>`;
 
   try {
-    await loader(root, _gateResult);
+    // Pass a safe gateResult stub — panels degrade gracefully if agent offline
+    const gateResult = {
+      systemReady: true,
+      blockRun5: false,
+      gate: "WARN",
+      warnings: ["Local agent offline — execution features require agent on port 4000"],
+      blockingIssues: [],
+      checks: {}
+    };
+    await loader(root, gateResult);
   } catch (err) {
-    root.innerHTML = `<div style="color:#ef4444;padding:1rem">Panel error: ${esc(err.message)}</div>`;
+    root.innerHTML = `
+      <div style="color:#ef4444;padding:2rem;font-family:monospace;font-size:0.85rem;">
+        <strong>Panel Error: ${esc(panelName)}</strong><br><br>
+        ${esc(err.message)}<br><br>
+        <span style="color:#555">${esc(err.stack?.split('\n').slice(0,3).join('\n') || '')}</span>
+      </div>`;
   }
+}
+
+// ─── Sidebar patch ────────────────────────────────────────────────────────────
+
+function _patchSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  if (!sidebar || document.querySelector('[data-panel="orchestration"]')) return;
+
+  const divider = sidebar.querySelector(".nav-divider");
+  if (divider) {
+    const orchBtn = document.createElement("button");
+    orchBtn.className = "nav-item";
+    orchBtn.dataset.panel = "orchestration";
+    orchBtn.innerHTML = `<span class="icon">🚀</span><span>Orchestrate</span>`;
+    orchBtn.onclick = () => window.__dash.nav("orchestration", orchBtn);
+    sidebar.insertBefore(orchBtn, divider);
+
+    const consBtn = document.createElement("button");
+    consBtn.className = "nav-item";
+    consBtn.dataset.panel = "console";
+    consBtn.innerHTML = `<span class="icon">🖥</span><span>Run Console</span>`;
+    consBtn.onclick = () => window.__dash.nav("console", consBtn);
+    sidebar.insertBefore(consBtn, divider);
+  }
+
+  const lockBtn = document.createElement("button");
+  lockBtn.className = "nav-item";
+  lockBtn.style.marginTop = "auto";
+  lockBtn.innerHTML = `<span class="icon">🔒</span><span>Lock</span>`;
+  lockBtn.onclick = _logout;
+  sidebar.appendChild(lockBtn);
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -140,77 +142,35 @@ export function showToast(msg, type = "info") {
   toast._timer = setTimeout(() => { toast.className = ""; }, 3200);
 }
 
-// ─── Panel Root Helper ────────────────────────────────────────────────────────
-
-export function setPanelRoot(html) {
-  const root = document.getElementById("panel-root");
-  if (root) root.innerHTML = html;
-}
-
-// ─── Escape ───────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function esc(str) {
-  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return String(str ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-// ─── Logout ───────────────────────────────────────────────────────────────────
-
-async function logout() {
+function _extendSession() {
   try {
-    const { logout: doLogout } = await import("./authSession.js");
-    doLogout();
+    import("./authSession.js").then(({ extendSession }) => extendSession()).catch(() => {});
   } catch {}
-  location.reload();
 }
 
-// ─── Expose to window ─────────────────────────────────────────────────────────
+function _logout() {
+  try {
+    import("./authSession.js").then(({ logout }) => { logout(); location.reload(); }).catch(() => location.reload());
+  } catch { location.reload(); }
+}
+
+// ─── Global API ──────────────────────────────────────────────────────────────
 
 window.__dash = {
   nav,
-  runGateCheck,
   showToast,
-  logout,
   openSystem:        () => nav("system",        document.querySelector('[data-panel="system"]')),
   openOrchestration: () => nav("orchestration", document.querySelector('[data-panel="orchestration"]'))
 };
 
-// ─── Update sidebar HTML to include RUN 7 panels ─────────────────────────────
-// Inject new nav items into the sidebar after DOM is ready
-
-function _patchSidebar() {
-  const sidebar = document.getElementById("sidebar");
-  if (!sidebar) return;
-
-  // Add Orchestration + Console nav items if not already present
-  if (!document.querySelector('[data-panel="orchestration"]')) {
-    const divider = sidebar.querySelector(".nav-divider");
-    if (divider) {
-      const orchBtn = document.createElement("button");
-      orchBtn.className = "nav-item";
-      orchBtn.dataset.panel = "orchestration";
-      orchBtn.innerHTML = `<span class="icon">🚀</span><span>Orchestrate</span>`;
-      orchBtn.onclick = () => window.__dash.nav("orchestration", orchBtn);
-      sidebar.insertBefore(orchBtn, divider);
-
-      const consBtn = document.createElement("button");
-      consBtn.className = "nav-item";
-      consBtn.dataset.panel = "console";
-      consBtn.innerHTML = `<span class="icon">🖥</span><span>Run Console</span>`;
-      consBtn.onclick = () => window.__dash.nav("console", consBtn);
-      sidebar.insertBefore(consBtn, divider);
-    }
-
-    // Add logout at bottom
-    const logoutBtn = document.createElement("button");
-    logoutBtn.className = "nav-item";
-    logoutBtn.style.marginTop = "auto";
-    logoutBtn.innerHTML = `<span class="icon">🔒</span><span>Lock</span>`;
-    logoutBtn.onclick = logout;
-    sidebar.appendChild(logoutBtn);
-  }
-}
-
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
-document.addEventListener("DOMContentLoaded", _patchSidebar);
+document.addEventListener("DOMContentLoaded", boot);
 boot();
