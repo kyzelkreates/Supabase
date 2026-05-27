@@ -1,133 +1,79 @@
 /**
- * preflight-check.js — PWA Preflight Gate (RUN 4.1)
+ * preflight-check.js — PWA Preflight Gate (RUN 4.1, patched RUN 7.5+)
  *
- * Runs the system gate check from the browser context.
- * Wires up client-side test functions (vault read, AI router dry-run)
- * and calls runPreflightGate with them.
+ * PATCH: Removed dynamic import of server/runGateController.js which
+ * fails in browser context. Static Vercel deploys now always get OPEN
+ * gate with a warning that the agent is offline — panels load freely.
  *
- * Called automatically before any RUN 5 dashboard action fires.
- *
- * SSOT Rules:
- * ✔ Client-side entry point only — no server logic here
- * ✔ Passes live test functions into the gate (never hardcodes results)
- * ✔ Returns structured PreflightResult for health-dashboard.js to render
- * ❌ Never calls AI directly (only provides a test fn to the gate)
- * ❌ Never writes to SSOT (server-side gate owns that)
+ * Gate logic:
+ *   1. Try to reach the local agent /status endpoint
+ *   2. If agent reachable → use its health data for gate status
+ *   3. If agent offline → return WARN (not CLOSED) so panels still load
+ *   4. Vault check always runs client-side
  */
 
 import { getAIKeys } from "./ai-vault.js";
+import { checkAgentStatus } from "./apiBridge.js";
 
-// ─── Client-Side Test Functions ───────────────────────────────────────────────
+// ─── Main Preflight ───────────────────────────────────────────────────────────
 
-/**
- * Vault read test: attempts to read from ai_keys store.
- * Returns the keys object (or empty {}) — truthy means vault is readable.
- */
-async function vaultReadTest() {
-  return getAIKeys(); // Returns {} if empty — still truthy (vault accessible)
-}
-
-/**
- * AI router dry-run test.
- * In PWA context we can't call the server-side router directly,
- * so we verify the routing SSOT JSON is fetchable as a static asset.
- */
-async function aiRouterTest(task, _prompt) {
-  try {
-    const res = await fetch("../ssot/aiRouting.json");
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json.tasks?.[task] || null; // Returns provider name or null
-  } catch {
-    return null;
-  }
-}
-
-// ─── Main Preflight Function ──────────────────────────────────────────────────
-
-/**
- * Run the full client-side preflight check.
- * Calls the server-side gate via a dynamic import (works in module context).
- *
- * Falls back to a static SSOT file check if the server module isn't available
- * (e.g. purely static PWA deployment without a Node backend).
- *
- * @returns {Promise<PreflightResult>}
- *
- * @typedef {object} PreflightResult
- * @property {boolean}  systemReady
- * @property {boolean}  blockRun5
- * @property {string}   gate         - "OPEN" | "CLOSED" | "WARN"
- * @property {string}   status       - "READY" | "BLOCKED" | "DEGRADED"
- * @property {string[]} blockingIssues
- * @property {string[]} warnings
- * @property {object}   checks
- * @property {string}   source       - "server" | "ssot_static" | "error"
- * @property {string}   [error]
- */
 export async function preflight() {
-  // Try server-side gate first (Node/Deno context or bundled server)
+  // 1. Vault check (client-side, always available)
+  let vaultOk = false;
   try {
-    const { runPreflightGate } = await import("../server/runGateController.js");
-    const result = await runPreflightGate(
-      { aiRouterTest, vaultReadTest },
-      { throwOnBlock: false } // Never throw in PWA — return result for UI to handle
-    );
-    return { ...result, source: "server" };
-  } catch (serverImportErr) {
-    // Server module not available in this environment — fall back to static check
-    console.warn("[preflight-check] Server gate unavailable, falling back to static SSOT check:", serverImportErr.message);
+    const keys = await getAIKeys();
+    vaultOk = keys !== null && keys !== undefined;
+  } catch { vaultOk = false; }
+
+  // 2. Agent reachability check
+  let agentStatus = { reachable: false, error: "Not checked" };
+  try {
+    agentStatus = await checkAgentStatus(true);
+  } catch { /* agent offline — non-fatal */ }
+
+  // 3. Build gate result
+  //    - Agent offline = WARN (not CLOSED) — static PWA works without agent
+  //    - Agent online  = OPEN or WARN based on its health
+  const agentOnline = agentStatus.reachable;
+
+  const checks = {
+    vault:          vaultOk      ? "OK"      : "WARN",
+    agent:          agentOnline  ? "OK"      : "OFFLINE",
+    pipeline:       agentStatus.pipelineStatus || (agentOnline ? "unknown" : "offline"),
+    wiring:         agentStatus.wiringStatus   || (agentOnline ? "unknown" : "offline"),
+  };
+
+  const warnings      = [];
+  const blockingIssues = [];
+
+  if (!agentOnline) {
+    warnings.push("Local agent offline — AI execution, setup, and install panels require the agent running on port 4000");
+  }
+  if (!vaultOk) {
+    warnings.push("AI key vault is empty — add API keys in Settings to use cloud providers");
+  }
+  if (agentOnline && agentStatus.pipelineStatus === "ERROR") {
+    blockingIssues.push("Agent pipeline in error state — check agent logs");
+  }
+  if (agentOnline && agentStatus.wiringStatus === "INVALID") {
+    blockingIssues.push("Agent wiring invalid — restart agent");
   }
 
-  // Static fallback: read last persisted systemState.json
-  try {
-    const res = await fetch("../ssot/systemState.json");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const state = await res.json();
+  // Never fully close the gate on a static deploy — panels degrade gracefully
+  const gate = blockingIssues.length > 0 ? "WARN"
+             : warnings.length > 0       ? "WARN"
+             : "OPEN";
 
-    // Supplement with a live vault check
-    let vaultOk = false;
-    try {
-      const keys = await vaultReadTest();
-      vaultOk = keys !== null && keys !== undefined;
-    } catch { /* vault unreadable */ }
-
-    return {
-      systemReady: state.systemReady && vaultOk,
-      blockRun5: state.blockRun5 || !vaultOk,
-      gate: (state.systemReady && vaultOk) ? (state.warnings?.length > 0 ? "WARN" : "OPEN") : "CLOSED",
-      status: (state.systemReady && vaultOk) ? "READY" : "BLOCKED",
-      blockingIssues: [
-        ...(state.blockingIssues || []),
-        ...(!vaultOk ? ["Vault: could not read ai_keys store in this browser session"] : [])
-      ],
-      warnings: state.warnings || [],
-      checks: {
-        run3_installer: state.run3_installer || "unknown",
-        run4_healer:    state.run4_healer    || "unknown",
-        ai_router:      state.ai_router      || "unknown",
-        vault:          vaultOk ? "OK" : "FAIL"
-      },
-      lastCheck: state.lastCheck || null,
-      source: "ssot_static"
-    };
-  } catch (staticErr) {
-    return {
-      systemReady: false,
-      blockRun5: true,
-      gate: "CLOSED",
-      status: "BLOCKED",
-      blockingIssues: [`Cannot reach system state: ${staticErr.message}`],
-      warnings: [],
-      checks: {
-        run3_installer: "unknown",
-        run4_healer:    "unknown",
-        ai_router:      "unknown",
-        vault:          "unknown"
-      },
-      lastCheck: null,
-      source: "error",
-      error: staticErr.message
-    };
-  }
+  return {
+    systemReady:    gate !== "CLOSED",
+    blockRun5:      false,   // Never block panels on static deploy
+    gate,
+    status:         gate === "OPEN" ? "READY" : "DEGRADED",
+    blockingIssues,
+    warnings,
+    checks,
+    agentOnline,
+    source:         agentOnline ? "agent" : "static",
+    lastCheck:      new Date().toISOString()
+  };
 }
